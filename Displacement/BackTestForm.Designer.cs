@@ -36,6 +36,7 @@ namespace Displacement
             checkFvgZones = new CheckBox();
             checkOrderBlocks = new CheckBox();
             checkZigZagLine = new CheckBox();
+            lblCandleInfo = new Label();
             SuspendLayout();
             // 
             // btnRun
@@ -50,10 +51,13 @@ namespace Displacement
             // 
             // dtStart
             // 
+            dtStart.CustomFormat = "MM/dd/yyyy HH:mm";
             dtStart.Location = new Point(251, 25);
             dtStart.Name = "dtStart";
             dtStart.Size = new Size(200, 23);
             dtStart.TabIndex = 1;
+            dtStart.Enter += dtStart_Enter;
+            dtStart.Leave += dtStart_Leave;
             // 
             // lblDateStart
             // 
@@ -75,10 +79,13 @@ namespace Displacement
             // 
             // dtEnd
             // 
+            dtEnd.CustomFormat = "MM/dd/yyyy HH:mm";
             dtEnd.Location = new Point(551, 25);
             dtEnd.Name = "dtEnd";
             dtEnd.Size = new Size(200, 23);
             dtEnd.TabIndex = 4;
+            dtEnd.Enter += dtEnd_Enter;
+            dtEnd.Leave += dtEnd_Leave;
             // 
             // lblTicker
             // 
@@ -132,6 +139,7 @@ namespace Displacement
             spChart.Name = "spChart";
             spChart.Size = new Size(1377, 658);
             spChart.TabIndex = 10;
+            spChart.DoubleClick += spChart_DoubleClick;
             // 
             // checkCrosshair
             // 
@@ -243,9 +251,19 @@ namespace Displacement
             checkZigZagLine.UseVisualStyleBackColor = true;
             checkZigZagLine.CheckedChanged += checkZigZagLine_CheckedChanged;
             // 
+            // lblCandleInfo
+            // 
+            lblCandleInfo.AutoSize = true;
+            lblCandleInfo.Location = new Point(1056, 120);
+            lblCandleInfo.Name = "lblCandleInfo";
+            lblCandleInfo.Size = new Size(68, 15);
+            lblCandleInfo.TabIndex = 21;
+            lblCandleInfo.Text = "CandleInfo:";
+            // 
             // BackTestForm
             // 
             ClientSize = new Size(1436, 803);
+            Controls.Add(lblCandleInfo);
             Controls.Add(checkZigZagLine);
             Controls.Add(checkOrderBlocks);
             Controls.Add(checkFvgZones);
@@ -295,5 +313,6 @@ namespace Displacement
         private CheckBox checkFvgZones;
         private CheckBox checkOrderBlocks;
         private CheckBox checkZigZagLine;
+        private Label lblCandleInfo;
     }
 }

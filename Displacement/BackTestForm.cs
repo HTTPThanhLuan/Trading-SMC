@@ -1,3 +1,4 @@
+using ScottPlot;
 using Smc;
 using Trading;
 
@@ -9,9 +10,17 @@ namespace Displacement
         private string ticker, timeframe;
         private List<Candle> candles;
         private ScottPlotDrawer scottPlotDrawer;
-        private bool isCrosshairEnabled = false, isSwingsEnabled = false, isStructureBreaksEnabled = false
-            , isSRZonesEnabled = false, isSDZonesEnabled = false
-            , isLiquidityZonesEnabled = false, isZigZagLineEnabled = false, isFvgZonesEnabled = false, isOrderBlocksEnabled = false;
+        private bool isCrosshairEnabled = false
+            , isSwingsEnabled = false
+            , isStructureBreaksEnabled = false
+            , isSRZonesEnabled = false
+            , isSDZonesEnabled = false
+            , isLiquidityZonesEnabled = false
+            , isZigZagLineEnabled = false
+            , isFvgZonesEnabled = false
+            , isOrderBlocksEnabled = false
+            , isdtStartOnFocus = false
+            , isdtEndOnFocus = false;
 
         private readonly FmpService _fmp = new("bNwpAsAvIjEKxid7uc5F78XBPmUuW8l2");
         public BackTestForm()
@@ -24,14 +33,19 @@ namespace Displacement
         {
             txtTicker.Text = "CDNS";
             dtStart.Value = new DateTime(2026, 03, 26);
+            dtStart.Format = DateTimePickerFormat.Custom;
             dtEnd.Value = DateTime.Now;
+            dtEnd.Format = DateTimePickerFormat.Custom;
             cboTimeframe.Text = "4hour";
             lblTrendResult.Text = string.Empty;
+            lblCandleInfo.Text = string.Empty;
+
+
         }
 
         private void EnableControls(bool enable)
-        {          
-           
+        {
+
             checkCrosshair.Enabled = enable;
             checkSwings.Enabled = enable;
             checkStructureBreaks.Enabled = enable;
@@ -58,10 +72,35 @@ namespace Displacement
         {
             BindSelectedCriteriaToVariables();
             await fetchDataMarket();
-            scottPlotDrawer = new ScottPlotDrawer(candles, spChart, timeframe);
+            scottPlotDrawer = new ScottPlotDrawer(candles, spChart, timeframe, onMoveOnChart, onDoubleClickOnCandle);
             scottPlotDrawer.DrawCandles();
 
             lblTrendResult.Text = $"{scottPlotDrawer.GetTrend()}";
+            DrawingIndicators();
+        }
+
+        private void onMoveOnChart(Candle candle)
+        {
+            lblCandleInfo.Text =
+                $"{candle.Time:MM-dd HH:mm}  " +
+                $"O:{candle.Open}  " +
+                $"H:{candle.High}  " +
+                $"L:{candle.Low}  " +
+                $"C:{candle.Close}";
+        }
+
+        private void onDoubleClickOnCandle(Candle candle)
+        {
+            if (isdtStartOnFocus)
+            {
+                dtStart.Value = candle.Time;
+                dtStart.Focus();
+            }
+            else if (isdtEndOnFocus)
+            {
+                dtEnd.Value = candle.Time;
+                dtEnd.Focus();
+            }
         }
 
         private void cboView_SelectedIndexChanged(object sender, EventArgs e)
@@ -86,6 +125,7 @@ namespace Displacement
 
         private void checkCrosshair_CheckedChanged(object sender, EventArgs e)
         {
+            isCrosshairEnabled = checkCrosshair.Checked;
             if (checkCrosshair.Checked)
                 scottPlotDrawer.EnableCrosshair();
             else
@@ -99,7 +139,7 @@ namespace Displacement
                 return;
 
             await DrawChart();
-            DrawingIndicators();
+         
         }
 
         private void DrawingIndicators()
@@ -138,6 +178,11 @@ namespace Displacement
                 scottPlotDrawer.AddStructureBreaks();
             else
                 scottPlotDrawer.RemoveStructureBreaks();
+
+            if(isCrosshairEnabled)
+                scottPlotDrawer.EnableCrosshair();
+            else
+                scottPlotDrawer.DisableCrosshair();
         }
 
         private void checkSwings_CheckedChanged(object sender, EventArgs e)
@@ -234,6 +279,45 @@ namespace Displacement
                 scottPlotDrawer.AddStructureBreaks();
             else
                 scottPlotDrawer.RemoveStructureBreaks();
+        }
+
+
+
+        private void dtStart_Leave(object sender, EventArgs e)
+        {
+           // isdtStartOnFocus = false;
+        }
+
+        private void dtStart_Enter(object sender, EventArgs e)
+        {
+            isdtStartOnFocus = true;
+            isdtEndOnFocus = false;
+        }
+
+        private void dtEnd_Enter(object sender, EventArgs e)
+        {
+            isdtEndOnFocus = true;
+            isdtStartOnFocus = false;
+        }
+
+        private void dtEnd_Leave(object sender, EventArgs e)
+        {
+           // isdtEndOnFocus = false;
+        }
+
+        private void spChart_DoubleClick(object sender, EventArgs e)
+        {
+            var (mouseX, mouseY) = spChart.GetMouseCoordinates();
+
+            int candleIndex = (int)Math.Round(mouseX);
+
+            if (candleIndex < 0 || candleIndex >= candles.Count)
+                return;
+
+            var candle = candles[candleIndex];
+
+            onDoubleClickOnCandle(candle);
+
         }
     }
 }

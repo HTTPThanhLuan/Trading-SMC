@@ -25,14 +25,20 @@ namespace Trading
         private Crosshair _crosshair;
         private SmcAnalyzer smcAnalyzer;
         private SmcAnalysisResult smcAnalysisResult;
+        private Action<Candle> onMoveOnCandleCallBack;
+        private Action<Candle> onDoubleClickOnCandleCallBack;
         public ScottPlotDrawer(List<Candle> candles
             , FormsPlot formsPlot
             , string timeframe
+            , Action<Candle> onMoveOnCandleCallBack
+            , Action<Candle> onDoubleClickOnCandleCallBack
             )
         {
             this.candles = candles;
             this.formsPlot = formsPlot;
             this.timeframe = timeframe;
+            this.onMoveOnCandleCallBack = onMoveOnCandleCallBack;
+            this.onDoubleClickOnCandleCallBack = onDoubleClickOnCandleCallBack;
 
             smcAnalyzer = new SmcAnalyzer();
             smcAnalysisResult = smcAnalyzer.Analyze(
@@ -41,7 +47,30 @@ namespace Trading
                 swingLength: 7,
                 sourceTimeFrame: timeframe
             );
+
+            //  formsPlot.MouseDoubleClick -= FormsPlot_MouseDoubleClick;
+            //this.formsPlot.Controls[0].DoubleClick += FormsPlot_MouseDoubleClick;
         }
+
+        private void FormsPlot_MouseDoubleClick(object? sender, MouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Left)
+                return;
+
+            var (mouseX, mouseY) = formsPlot.GetMouseCoordinates();
+
+            int candleIndex = (int)Math.Round(mouseX);
+
+            if (candleIndex < 0 || candleIndex >= candles.Count)
+                return;
+
+            var candle = candles[candleIndex];
+
+            onDoubleClickOnCandleCallBack?.Invoke(candle);
+
+
+        }
+
         public void DrawCandles()
         {
             formsPlot.Plot.Clear();
@@ -243,7 +272,7 @@ namespace Trading
 
             _crosshair.HorizontalLine.Color = Color.Gray;
             _crosshair.VerticalLine.Color = Color.Gray;
-
+            formsPlot.MouseMove -= FormsPlot_MouseMove;
             formsPlot.MouseMove += FormsPlot_MouseMove;
         }
 
@@ -282,6 +311,11 @@ namespace Trading
 
                 _crosshair.X = candleIndex;
                 _crosshair.Y = (double)candle.Close;
+                //_crosshair.HorizontalLine.Label = $"C:{candle.Close}";
+                //_crosshair.VerticalLine.Label = $"{candle.Time:MM-dd HH:mm}";
+                //_crosshair.Label = $"Candle {candleIndex}";
+
+                onMoveOnCandleCallBack?.Invoke(candle);
             }
 
             formsPlot.Render();
