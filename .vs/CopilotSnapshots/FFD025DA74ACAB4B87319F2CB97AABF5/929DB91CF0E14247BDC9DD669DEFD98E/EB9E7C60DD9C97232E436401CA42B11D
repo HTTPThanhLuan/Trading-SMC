@@ -1,0 +1,150 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
+namespace Displacement
+{
+
+    public class FmpService
+    {
+        private readonly HttpClient _httpClient;
+        private readonly string _apiKey;
+
+        public FmpService(string apiKey)
+        {
+            _apiKey = apiKey;
+
+            _httpClient = new HttpClient
+            {
+                BaseAddress = new Uri("https://financialmodelingprep.com/stable/"),
+                Timeout = TimeSpan.FromSeconds(30)
+            };
+        }
+
+        // Example URL: https://financialmodelingprep.com/stable/historical-chart/1min?symbol=EURUSD&apikey=bNwpAsAvIjEKxid7uc5F78XBPmUuW8l2
+
+        public async Task<List<Candle>> GetIntradayCandlesAsync(
+            string ticker,
+            string timeframe,
+            string from,
+            string to
+            )
+        {
+            // timeframe examples: 1min, 5min, 15min, 30min, 1hour
+            string url =
+                $"historical-chart/{timeframe}?symbol={ticker.ToUpper()}&from={from}&to={to}&apikey={_apiKey}";
+
+            var candles = await _httpClient
+                .GetFromJsonAsync<List<FmpCandleDto>>(url, JsonOptions);
+
+            return candles?
+                .Select(x => new Candle
+                {
+                    Date = x.Date,
+                    Open = x.Open,
+                    High = x.High,
+                    Low = x.Low,
+                    Close = x.Close,
+                    Volume = x.Volume
+                })
+                .OrderBy(x => x.Date)
+                .ToList()
+                ?? new List<Candle>();
+        }
+
+        public async Task<List<Candle>> GetDailyCandlesAsync(string ticker)
+        {
+            string url =
+                $"historical-price-full/{ticker.ToUpper()}?apikey={_apiKey}";
+
+            var result = await _httpClient
+                .GetFromJsonAsync<FmpDailyResponse>(url);
+
+            return result?.Historical?
+                .Select(x => new Candle
+                {
+                    Date = x.Date,
+                    Open = x.Open,
+                    High = x.High,
+                    Low = x.Low,
+                    Close = x.Close,
+                    Volume = x.Volume
+                })
+                .OrderBy(x => x.Date)
+                .ToList()
+                ?? new List<Candle>();
+        }
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            Converters = { new DateTimeConverter() }
+        };
+
+
+        private class DateTimeConverter : JsonConverter<DateTime>
+        {
+            public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                var dateString = reader.GetString();
+
+                if (DateTime.TryParse(dateString, out var result))
+                    return result;
+
+                if (long.TryParse(dateString, out var unixTime))
+                    return DateTime.UnixEpoch.AddSeconds(unixTime);
+
+                throw new JsonException($"Unable to convert \"{dateString}\" to DateTime.");
+            }
+
+            public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)
+            {
+                writer.WriteStringValue(value.ToString("yyyy-MM-dd"));
+            }
+        }
+    }
+
+    public class Candle
+    {
+        public DateTime Date { get; set; }
+        public decimal Open { get; set; }
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+        public decimal Close { get; set; }
+        public long Volume { get; set; }
+    }
+    public class FmpCandleDto
+    {
+        [JsonPropertyName("date")]
+        public DateTime Date { get; set; }
+
+        [JsonPropertyName("open")]
+        public decimal Open { get; set; }
+
+        [JsonPropertyName("high")]
+        public decimal High { get; set; }
+
+        [JsonPropertyName("low")]
+        public decimal Low { get; set; }
+
+        [JsonPropertyName("close")]
+        public decimal Close { get; set; }
+
+        [JsonPropertyName("volume")]
+        public long Volume { get; set; }
+    }
+
+    public class FmpDailyResponse
+    {
+        [JsonPropertyName("symbol")]
+        public string Symbol { get; set; } = "";
+
+        [JsonPropertyName("historical")]
+        public List<FmpCandleDto> Historical { get; set; } = new();
+    }
+}

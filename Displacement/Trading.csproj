@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Smc\**" />
+    <EmbeddedResource Remove="Smc\**" />
+    <None Remove="Smc\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="ActiveAlert.cs" />
+    <Compile Remove="AlertService.cs" />
+    <Compile Remove="Candle.cs" />
+    <Compile Remove="CandleAnalyzer.cs" />
+    <Compile Remove="Data.cs" />
+    <Compile Remove="DisplacementWatcher.cs" />
+    <Compile Remove="ExtenstionMethod.cs" />
+    <Compile Remove="JsonHandler.cs" />
+  </ItemGroup>
+
+
+
+  <ItemGroup>
+    <PackageReference Include="ScottPlot.WinForms" Version="4.1.74" />
+  </ItemGroup>
+
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\Smc\Smc.csproj" />
+  </ItemGroup>
+
+</Project>

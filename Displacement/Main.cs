@@ -1,0 +1,322 @@
+
+namespace Displacement
+{
+    using System.ComponentModel;
+    using System.Reflection.Metadata;
+    using System.Text.Json;
+
+    using static System.Runtime.InteropServices.JavaScript.JSType;
+
+    public partial class Main : Form
+    {
+        //private AlertService _alert = new AlertService();
+        //private readonly BindingList<ActiveAlert> _activeAlerts = new();
+        //private string SettingsFile => Path.Combine(Application.StartupPath, "setting.json");
+        //private readonly FmpService _fmpService = new FmpService("bNwpAsAvIjEKxid7uc5F78XBPmUuW8l2");
+
+        private CancellationTokenSource? _monitoringCts;
+        private bool _isMonitoring;
+        //private List<Trading.Smc.v2.Candle> candles = new List<Trading.Smc.v2.Candle>();
+        //private List<Trading.Smc.v2.Candle> FPMCandles = new List<Trading.Smc.v2.Candle>();
+
+        //private readonly Trading.Smc.v2.FmpService _fmp = new("bNwpAsAvIjEKxid7uc5F78XBPmUuW8l2");
+        //private readonly Trading.Smc.v2.SmcMultiTimeFrameAlertEngine _engine = new();
+
+        public Main()
+        {
+            InitializeComponent();
+
+            dateWatchDateStart.Value = new DateTime(2026, 6, 11, 8, 0, 0);
+            dateWatchDateStart.Format = DateTimePickerFormat.Custom;
+            lblCandleTime.Text = "";
+            cboTimeFrame.SelectedIndex = 0;
+            cboSpeed.SelectedIndex = 0;
+            numCandles.Value = 20;
+            chkIsBacktesting.Checked = true;
+            numATR.Value = 2.0m;
+            //LoadData();
+            //SetupAlertGrid();
+
+        }
+
+        private async void btnStart_Click(object sender, EventArgs e)
+        {
+
+
+            //if (_isMonitoring)
+            //{
+            //    btnStart.Text = "Start";
+            //    // Stop monitoring
+            //    StopMonitoring();
+            //    return;
+            //}
+
+            //SaveDate();
+
+            //var tickers = txtTickers.Text.Split(";", StringSplitOptions.RemoveEmptyEntries)
+            //    .Select(t => t.Trim())
+            //    .Distinct()
+            //    .ToList();
+
+            //if (!tickers.Any())
+            //    return;
+
+            //var timeFrame = cboTimeFrame.SelectedItem?.ToString() ?? "5min";
+            //var candlePeriod = (int)numCandles.Value;
+
+            //var endDate = GetDateString(dateWatchDateStart.Text);
+
+            //var startDate = DateTime.Parse(dateWatchDateStart.Text);  //DateTime.Parse(endDate).AddDays(-candlePeriod).ToString("yyyy-MM-dd");
+
+            //var speed = cboSpeed.SelectedItem?.ToString() ?? "1x";
+
+            //var atrMultiplier = numATR.Value;
+
+            //_isMonitoring = true;
+            //btnStart.Text = "Stop";
+            //_monitoringCts = new CancellationTokenSource();
+
+
+            //// await ProcessTickerAsync("EURUSD", "5min", startDate, endDate);
+            //// Fire and forget - don't await so the click handler returns immediately
+            //_ = RunMonitoringLoopAsync(tickers, candlePeriod, speed, timeFrame, startDate, _monitoringCts.Token, atrMultiplier);
+        }
+
+        //private async Task RunMonitoringLoopAsync(
+        //    List<string> tickers
+        //    , int candlePeriod
+        //    , string speed
+        //    , string timeFrame
+        //    , DateTime startDate
+        //    , CancellationToken cancellationToken
+        //    , decimal atrMultiplier
+        //    )
+        //{
+        //    int intervalMs = GetIntervalMs(speed);
+
+
+
+        //    while (!cancellationToken.IsCancellationRequested)
+        //    {
+        //        try
+        //        {
+        //            // Process all tickers concurrently
+        //            var tasks = tickers.Select(ticker => ProcessTickerAsync(ticker, 0, candlePeriod, timeFrame, startDate, atrMultiplier));
+        //            await Task.WhenAll(tasks);
+
+        //            startDate = GetDate(timeFrame, startDate);
+        //            // Wait for the specified interval
+        //            await Task.Delay(intervalMs, cancellationToken);
+        //        }
+        //        catch (OperationCanceledException)
+        //        {
+        //            // Monitoring was cancelled
+        //            break;
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            System.Diagnostics.Debug.WriteLine($"Error in monitoring loop: {ex.Message}");
+        //        }
+        //    }
+        //}
+
+        //private int GetIntervalMs(string speed)
+        //{
+        //    return speed switch
+        //    {
+        //        "1x" => 1000,
+        //        "2x" => 500,
+        //        "5x" => 200,
+        //        "10x" => 100,
+        //        _ => 1000, // Default to 1x if unknown
+        //    };
+        //}
+
+        //private DateTime GetDate(string timeFrame, DateTime date)
+        //{
+        //    return timeFrame switch
+        //    {
+        //        "1min" => date.AddMinutes(1),
+        //        "5min" => date.AddMinutes(5),
+        //        "15min" => date.AddMinutes(15),
+        //        "30min" => date.AddMinutes(30),
+        //        "1h" => date.AddHours(1),
+        //        "4h" => date.AddHours(4),
+        //        "1d" => date.AddDays(1),
+        //        _ => date.AddDays(5),
+        //    };
+        //}
+
+        //private void StopMonitoring()
+        //{
+        //    _isMonitoring = false;
+        //    _monitoringCts?.Cancel();
+        //    _monitoringCts?.Dispose();
+        //    _monitoringCts = null;
+        //    candles.Clear();
+        //    btnStart.Text = "Start";
+        //}
+
+        //private async Task ProcessTickerAsync(string ticker, int index, int candlePeriod, string timeFrame, DateTime startDate, decimal atrMultiplier)
+        //{
+        //    try
+        //    {
+
+        //        if (chkIsBacktesting.Checked && candles.Count == 0)
+        //        {
+        //            FPMCandles = await _fmp.GetCandlesAsync(ticker, timeFrame, candlePeriod, startDate);
+        //        }
+
+        //        var estStartDate = startDate.ConvertLocalToEstTime();
+
+        //        candles = FPMCandles.OrderBy(c => c.Time).Where(c => c.Time <= estStartDate).ToList(); // Ensure candles are sorted by DateTime
+
+        //        var lastCandleTime = (await _fmp.GetLastCandleTime(ticker, timeFrame))?.ConvertEstToLocalTime();
+
+
+        //        if (candles == null || !candles.Any())
+        //            return;
+
+
+        //        lblCandleTime.Text = $"@Candle: {candles.LastOrDefault()?.Time.ConvertEstToLocalTime().ToString("yyyy-MM-dd HH:mm")}";
+
+        //        //// Stronger setup:
+        //        //var signal4h15m = await _engine.CheckFromFmpAsync(_fmp, ticker, "4hour", "15min");
+        //        //if (signal4h15m.ShouldAlert)
+        //        //{
+        //        //    AddAlertToGrid(signal4h15m);
+        //        //    _alert.StartAlarm();
+        //        //    return;
+        //        //}
+
+        //        await ScanTickerAsync(ticker, candles, _monitoringCts?.Token ?? CancellationToken.None);
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Log or handle errors per ticker
+        //        System.Diagnostics.Debug.WriteLine($"Error processing {ticker}: {ex.Message}");
+        //    }
+        //}
+
+
+
+        //private void SetupAlertGrid()
+        //{
+        //    gridAlert.AutoGenerateColumns = false;
+        //    gridAlert.DataSource = _activeAlerts;
+
+        //    gridAlert.Columns.Add(new DataGridViewTextBoxColumn
+        //    {
+        //        HeaderText = "Ticker",
+        //        DataPropertyName = "Ticker"
+        //    });
+
+        //    gridAlert.Columns.Add(new DataGridViewTextBoxColumn
+        //    {
+        //        HeaderText = "Timeframe",
+        //        DataPropertyName = "TimeFrame"
+        //    });
+
+        //    gridAlert.Columns.Add(new DataGridViewTextBoxColumn
+        //    {
+        //        HeaderText = "Time",
+        //        DataPropertyName = "AlertTime",
+        //        DefaultCellStyle = new DataGridViewCellStyle
+        //        {
+        //            Format = "ddd MMMM dd, yyyy HH:mm:ss"
+        //        }
+        //    });
+
+        //    gridAlert.Columns.Add(new DataGridViewButtonColumn
+        //    {
+        //        HeaderText = "Direction",
+        //        DataPropertyName = "Direction"
+        //    });
+
+        //    gridAlert.Columns.Add(new DataGridViewButtonColumn
+        //    {
+        //        HeaderText = "Action",
+        //        Text = "Stop",
+        //        UseColumnTextForButtonValue = true,
+        //        Name = "StopButton"
+        //    });
+
+
+
+
+        //    gridAlert.CellClick += gridAlert_CellClick;
+        //}
+
+        //private void gridAlert_CellClick(object? sender, DataGridViewCellEventArgs e)
+        //{
+        //    if (e.RowIndex < 0)
+        //        return;
+
+        //    if (e.ColumnIndex < 0)
+        //        return;
+
+        //    if (gridAlert.Columns[e.ColumnIndex].Name == "StopButton")
+        //    {
+        //        var alert = _activeAlerts[e.RowIndex];
+
+        //        _activeAlerts.Remove(alert);
+
+        //        if (_activeAlerts.Count == 0)
+        //        {
+        //            _alert.StopAlarm();
+        //        }
+        //    }
+        //}
+
+
+        //private void SaveDate()
+        //{
+        //    var settings = new Data
+        //    {
+        //        Tickers = txtTickers.Text.Split(";", StringSplitOptions.RemoveEmptyEntries)
+        //        .Distinct()
+        //        .ToList(),
+        //        TimeFrame = cboTimeFrame.SelectedItem?.ToString() ?? "5m"
+        //    };
+
+        //    var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+        //    {
+        //        WriteIndented = true
+        //    });
+
+        //    File.WriteAllText(SettingsFile, json);
+
+        //}
+
+        //private void LoadData()
+        //{
+        //    if (!File.Exists(SettingsFile))
+        //        return;
+
+        //    var json = File.ReadAllText(SettingsFile);
+
+        //    var settings = JsonSerializer.Deserialize<Data>(json);
+
+        //    txtTickers.Text = string.Join(";", settings?.Tickers ?? Array.Empty<string>());
+        //    cboTimeFrame.SelectedItem = settings?.TimeFrame ?? "5m";
+        //}
+
+        private void lblWatchList_Click(object sender, EventArgs e)
+        {
+
+        }
+      
+        private void Main_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void btnOpenFormBackTest_Click(object sender, EventArgs e)
+        {
+            var form = new BackTestForm();
+            form.Show();
+        }
+    }
+}
+

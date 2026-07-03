@@ -1,0 +1,2 @@
+C:\Users\Thanh\source\repos\Displacement\TradingUI\Fakes\ScottPlot.WinForms.fakes : warning : Cannot generate stub for ScottPlot.WinForms.FormsPlotExtensions: Type has no Constructors visible to the assembly. The Constructor itself or a parameter may not be visible..
+C:\Users\Thanh\source\repos\Displacement\TradingUI\Fakes\ScottPlot.WinForms.fakes : warning : Cannot generate stub for ScottPlot.WinForms.FormsPlotViewer: Type has no Constructors visible to the assembly. The Constructor itself or a parameter may not be visible..

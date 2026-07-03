@@ -1,0 +1,327 @@
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Trading.Smc.v2;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace Displacement.Tests
+{
+    [TestClass]
+    public class SmcAnalyzerDetectSwingsTests
+    {
+        private static Candle CreateCandle(DateTime time, decimal open, decimal high, decimal low, decimal close, long volume = 1000)
+        {
+            return new Candle
+            {
+                Time = time,
+                Open = open,
+                High = high,
+                Low = low,
+                Close = close,
+                Volume = volume
+            };
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithInsufficientCandles_ReturnsEmptyList()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 5;
+            var candles = new List<Candle>
+            {
+                CreateCandle(baseTime, 100, 101, 99, 100),
+                CreateCandle(baseTime.AddMinutes(5), 100, 102, 98, 101),
+                CreateCandle(baseTime.AddMinutes(10), 101, 103, 97, 102),
+            };
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            Assert.AreEqual(0, result.Count, "Should return empty list when candles < swingLength * 2 + 1");
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithSimpleUpDown_DetectsSwingHighAndLow()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>
+            {
+                // Initial low zone
+                CreateCandle(baseTime, 100, 101, 99, 100),
+                CreateCandle(baseTime.AddMinutes(5), 100, 100.5m, 99.5m, 100),
+
+                // Swing low (minimum in range)
+                CreateCandle(baseTime.AddMinutes(10), 99, 99.5m, 98, 99),
+
+                // Swing high (maximum in range)
+                CreateCandle(baseTime.AddMinutes(15), 100, 105, 99, 104),
+
+                // Recovery zone
+                CreateCandle(baseTime.AddMinutes(20), 104, 104.5m, 102, 104),
+                CreateCandle(baseTime.AddMinutes(25), 104, 105, 103, 103),
+            };
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            Assert.IsTrue(result.Count >= 2, "Should detect at least a low and high");
+            Assert.IsTrue(result.Any(s => s.Type == SwingType.Low), "Should detect a swing low");
+            Assert.IsTrue(result.Any(s => s.Type == SwingType.High), "Should detect a swing high");
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithConsecutiveHighs_RemovesWeakerHigh()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>
+            {
+                // Low zone
+                CreateCandle(baseTime, 100, 101, 99, 100),
+                CreateCandle(baseTime.AddMinutes(5), 100, 100.5m, 99.5m, 100),
+
+                // First high (weaker)
+                CreateCandle(baseTime.AddMinutes(10), 101, 102, 100, 101),
+
+                // Second high (stronger) - should be kept
+                CreateCandle(baseTime.AddMinutes(15), 102, 105, 101, 104),
+
+                // Recovery zone
+                CreateCandle(baseTime.AddMinutes(20), 104, 104.5m, 102, 104),
+                CreateCandle(baseTime.AddMinutes(25), 104, 105, 103, 103),
+            };
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            var highs = result.Where(s => s.Type == SwingType.High).ToList();
+            Assert.IsTrue(highs.Count <= 1 || highs.All(h => h.Level >= 104), 
+                "Should not have consecutive highs; weaker one should be removed");
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithConsecutiveLows_RemovesWeakerLow()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>
+            {
+                // High zone
+                CreateCandle(baseTime, 100, 101, 99, 100),
+                CreateCandle(baseTime.AddMinutes(5), 100, 101, 99.5m, 100),
+
+                // First low (weaker, higher)
+                CreateCandle(baseTime.AddMinutes(10), 99, 99.5m, 98.5m, 99),
+
+                // Second low (stronger, lower) - should be kept
+                CreateCandle(baseTime.AddMinutes(15), 98, 98.5m, 96.5m, 97),
+
+                // Recovery zone
+                CreateCandle(baseTime.AddMinutes(20), 98, 99, 97, 98),
+                CreateCandle(baseTime.AddMinutes(25), 98, 100, 97.5m, 99),
+            };
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            var lows = result.Where(s => s.Type == SwingType.Low).ToList();
+            Assert.IsTrue(lows.Count <= 1 || lows.All(l => l.Level <= 97), 
+                "Should not have consecutive lows; weaker one should be removed");
+        }
+
+        [TestMethod]
+        public void DetectSwings_ReturnsOrderedByIndex()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>();
+
+            for (int i = 0; i < 15; i++)
+            {
+                decimal low = 95 + (i % 4);
+                decimal high = low + 8;
+                decimal close = low + 4;
+                candles.Add(CreateCandle(baseTime.AddMinutes(5 * i), low + 2, high, low, close));
+            }
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            for (int i = 0; i < result.Count - 1; i++)
+            {
+                Assert.IsTrue(result[i].Index < result[i + 1].Index, 
+                    "Swings should be ordered by index");
+            }
+        }
+
+        [TestMethod]
+        public void DetectSwings_SetsCorrectSwingProperties()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>
+            {
+                CreateCandle(baseTime, 100, 101, 99, 100),
+                CreateCandle(baseTime.AddMinutes(5), 100, 100.5m, 99.5m, 100),
+                CreateCandle(baseTime.AddMinutes(10), 99, 99.5m, 98, 99),
+                CreateCandle(baseTime.AddMinutes(15), 100, 105, 99, 104),
+                CreateCandle(baseTime.AddMinutes(20), 104, 104.5m, 102, 104),
+                CreateCandle(baseTime.AddMinutes(25), 104, 105, 103, 103),
+            };
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            foreach (var swing in result)
+            {
+                Assert.IsNotNull(swing.Time, "Swing should have a time");
+                Assert.IsTrue(swing.Index >= 0, "Swing index should be non-negative");
+                Assert.IsTrue(swing.Level > 0, "Swing level should be positive");
+                Assert.IsTrue(swing.Type == SwingType.High || swing.Type == SwingType.Low, 
+                    "Swing type should be either High or Low");
+            }
+        }
+
+        [TestMethod]
+        public void DetectSwings_AlternatesHighLow()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>();
+
+            // Create a zigzag pattern: low, high, low, high, low, high
+            decimal[] prices = { 98, 105, 97, 104, 96, 103 };
+            for (int i = 0; i < prices.Length; i++)
+            {
+                decimal price = prices[i];
+                candles.Add(CreateCandle(baseTime.AddMinutes(5 * i), price, price + 1, price - 1, price));
+            }
+
+            // Add buffer candles
+            for (int i = prices.Length; i < prices.Length + 4; i++)
+            {
+                candles.Add(CreateCandle(baseTime.AddMinutes(5 * i), 100, 101, 99, 100));
+            }
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            for (int i = 0; i < result.Count - 1; i++)
+            {
+                Assert.AreNotEqual(result[i].Type, result[i + 1].Type, 
+                    "Consecutive swings should alternate between High and Low");
+            }
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithDifferentSwingLengths_ProducesExpectedResults()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var candles = new List<Candle>();
+
+            for (int i = 0; i < 50; i++)
+            {
+                decimal price = 100 + (decimal)Math.Sin(i * 0.2) * 10;
+                candles.Add(CreateCandle(baseTime.AddMinutes(5 * i), price, price + 2, price - 2, price));
+            }
+
+            // Act
+            var result2 = SmcAnalyzer.DetectSwings(candles, 2);
+            var result5 = SmcAnalyzer.DetectSwings(candles, 5);
+            var result10 = SmcAnalyzer.DetectSwings(candles, 10);
+
+            // Assert
+            // Longer swing lengths should result in fewer swings (less sensitive)
+            Assert.IsTrue(result2.Count >= result5.Count, 
+                "Longer swing length should detect fewer swings");
+            Assert.IsTrue(result5.Count >= result10.Count, 
+                "Longer swing length should detect fewer swings");
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithFlatPrice_ReturnsNoSwings()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 5;
+            var candles = new List<Candle>();
+
+            // Create flat price action
+            for (int i = 0; i < 20; i++)
+            {
+                candles.Add(CreateCandle(baseTime.AddMinutes(5 * i), 100, 100, 100, 100));
+            }
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            Assert.AreEqual(0, result.Count, "Flat price should not produce swings");
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithStrongTrend_DetectsSwingsAlongTrend()
+        {
+            // Arrange
+            var baseTime = new DateTime(2024, 1, 1, 9, 0, 0);
+            var swingLength = 2;
+            var candles = new List<Candle>();
+
+            // Create a strong uptrend with pullbacks
+            decimal basePrice = 100;
+            for (int i = 0; i < 25; i++)
+            {
+                decimal price = basePrice + (i * 0.5m);
+                if (i % 3 == 0) price -= 1; // Small pullback
+                candles.Add(CreateCandle(baseTime.AddMinutes(5 * i), price, price + 1, price - 0.5m, price));
+            }
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles, swingLength);
+
+            // Assert
+            Assert.IsTrue(result.Count > 0, "Strong trend should still detect swings");
+            var highs = result.Where(s => s.Type == SwingType.High).ToList();
+            Assert.IsTrue(highs.Count > 0, "Should detect swing highs in an uptrend");
+        }
+
+        [TestMethod]
+        public void DetectSwings_EmptyList_ReturnsEmptyList()
+        {
+            // Arrange
+            var candles = new List<Candle>();
+
+            // Act
+            var result = SmcAnalyzer.DetectSwings(candles);
+
+            // Assert
+            Assert.AreEqual(0, result.Count, "Empty candle list should return empty swings");
+        }
+
+        [TestMethod]
+        public void DetectSwings_WithNullList_ThrowsArgumentException()
+        {
+            // Arrange
+            List<Candle> candles = null;
+
+            // Act & Assert
+            Assert.ThrowsException<ArgumentNullException>(() => SmcAnalyzer.DetectSwings(candles));
+        }
+    }
+}

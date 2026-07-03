@@ -1,0 +1,90 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Displacement
+{
+    public class DisplacementWatcher
+    {
+        private AlertService _alert;
+        private string _ticker;
+        private string _timeFrame;
+        private int _startIndex = 0;
+        public DisplacementWatcher(AlertService _alert, string ticker, string timeFrame)
+        {
+            this._alert = _alert;
+            this._ticker = ticker;
+            this._timeFrame = timeFrame;
+        }
+
+        public void NotifyDisplacement(string message)
+        {
+            _alert.StartAlarm();
+        }
+
+        public DisplacementResult DetectDisplacement(
+            List<Candle> candles,
+            int index,
+            int atrPeriod = 14)
+        {
+            var c = candles[index];
+
+            var range = c.High - c.Low;
+            if (range <= 0) return new();
+
+            var body = Math.Abs(c.Close - c.Open);
+            var bodyPercent = body / range;
+
+            var atr = candles
+                .Skip(index - atrPeriod + 1)
+                .Take(atrPeriod)
+                .Average(x => (double)(x.High - x.Low));
+
+            var avgVolume = candles
+                .Skip(index - atrPeriod + 1)
+                .Take(atrPeriod)
+                .Average(x => x.Volume);
+
+            var atrRatio = range / (decimal)atr;
+            var volumeRatio = avgVolume == 0 ? 0 : (double)c.Volume / avgVolume;
+
+            bool bullish =
+                c.Close > c.Open &&
+                bodyPercent >= 0.60m &&
+                atrRatio >= 8m && //1.2m &&
+                volumeRatio >= 1.2d &&
+                c.Close >= c.Low + range * 0.75m;
+
+            bool bearish =
+                c.Close < c.Open &&
+                bodyPercent >= 0.60m &&
+                atrRatio >= 1.2m &&
+                volumeRatio >= 1.2d &&
+                c.Close <= c.Low + range * 0.25m;
+
+            return new DisplacementResult
+            {
+                IsDisplacement =  bullish || bearish,
+                Direction = bullish ? $"Bullish - Low: {c.Low} High: {c.High} Open: {c.Open} Close: {c.Close}" : bearish ? $"Bearish - High: {c.High} Low: {c.Low} Open: {c.Open} Close: {c.Close}" : "",
+                BodyPercent = bodyPercent,
+                AtrRatio = atrRatio,
+                VolumeRatio = volumeRatio,
+                Ticker = _ticker,
+                TimeFrame = _timeFrame,
+                DateTime = c.Date
+            };
+        }
+    }
+
+    public class DisplacementResult
+    {
+        public bool IsDisplacement { get; set; }
+        public string Direction { get; set; } = "";
+        public decimal BodyPercent { get; set; }
+        public decimal AtrRatio { get; set; }
+        public double VolumeRatio { get; set; }
+        public string Ticker { get; set; } = "";
+        public string TimeFrame { get; set; } = "";
+        public DateTime DateTime { get; set; }
+    }
+}
