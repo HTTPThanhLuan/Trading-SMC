@@ -18,6 +18,7 @@ namespace Displacement
         {
             InitializeComponent();
             FillCriteria();
+            EnableControls(false);
         }
         private void FillCriteria()
         {
@@ -25,6 +26,21 @@ namespace Displacement
             dtStart.Value = new DateTime(2026, 03, 26);
             dtEnd.Value = DateTime.Now;
             cboTimeframe.Text = "4hour";
+            lblTrendResult.Text = string.Empty;
+        }
+
+        private void EnableControls(bool enable)
+        {          
+           
+            checkCrosshair.Enabled = enable;
+            checkSwings.Enabled = enable;
+            checkStructureBreaks.Enabled = enable;
+            checkSRZones.Enabled = enable;
+            checkSDZones.Enabled = enable;
+            checkLiquidityZones.Enabled = enable;
+            checkZigZagLine.Enabled = enable;
+            checkFvgZones.Enabled = enable;
+            checkOrderBlocks.Enabled = enable;
         }
 
         private void BackTestForm_Load(object sender, EventArgs e)
@@ -35,6 +51,7 @@ namespace Displacement
         private async void btnRun_Click(object sender, EventArgs e)
         {
             await DrawChart();
+            EnableControls(true);
         }
 
         private async Task DrawChart()
@@ -43,6 +60,8 @@ namespace Displacement
             await fetchDataMarket();
             scottPlotDrawer = new ScottPlotDrawer(candles, spChart, timeframe);
             scottPlotDrawer.DrawCandles();
+
+            lblTrendResult.Text = $"{scottPlotDrawer.GetTrend()}";
         }
 
         private void cboView_SelectedIndexChanged(object sender, EventArgs e)
@@ -80,6 +99,45 @@ namespace Displacement
                 return;
 
             await DrawChart();
+            DrawingIndicators();
+        }
+
+        private void DrawingIndicators()
+        {
+            if (scottPlotDrawer == null) return;
+
+            if (isSwingsEnabled)
+                scottPlotDrawer.AddSwings();
+            else
+                scottPlotDrawer.RemoveSwings();
+            if (isZigZagLineEnabled)
+                scottPlotDrawer.AddZigZagLine();
+            else
+                scottPlotDrawer.RemoveZigZagLine();
+            if (isSDZonesEnabled)
+                scottPlotDrawer.AddSDZones();
+            else
+                scottPlotDrawer.RemoveSDZones();
+            if (isSRZonesEnabled)
+                scottPlotDrawer.AddSRZones();
+            else
+                scottPlotDrawer.RemoveSRZones();
+            if (isFvgZonesEnabled)
+                scottPlotDrawer.AddFvgZones();
+            else
+                scottPlotDrawer.RemoveFvgZones();
+            if (isOrderBlocksEnabled)
+                scottPlotDrawer.AddOrderBlockZones();
+            else
+                scottPlotDrawer.RemoveOrderBlockZones();
+            if (isLiquidityZonesEnabled)
+                scottPlotDrawer.AddLiquidityZones();
+            else
+                scottPlotDrawer.RemoveLiquidityZones();
+            if (isStructureBreaksEnabled)
+                scottPlotDrawer.AddStructureBreaks();
+            else
+                scottPlotDrawer.RemoveStructureBreaks();
         }
 
         private void checkSwings_CheckedChanged(object sender, EventArgs e)

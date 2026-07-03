@@ -640,6 +640,11 @@ namespace Trading
             }
         }
 
+        public string GetTrend()
+        {
+           return $"Current Trend is {smcAnalysisResult.Trend.ToString()}";
+        }
+
         public void AddSwings()
         {
             DrawSwingPoints();

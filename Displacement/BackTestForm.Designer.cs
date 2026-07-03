@@ -118,7 +118,7 @@ namespace Displacement
             // lblTrendResult
             // 
             lblTrendResult.AutoSize = true;
-            lblTrendResult.Location = new Point(49, 71);
+            lblTrendResult.Location = new Point(882, 31);
             lblTrendResult.Name = "lblTrendResult";
             lblTrendResult.Size = new Size(72, 15);
             lblTrendResult.TabIndex = 9;
