@@ -13,18 +13,34 @@ namespace Trading
 {
     public class ScottPlotDrawer
     {
+    
+        public List<IPlottable> fvgZones = new(), swingMarkers = new()
+            , zigZagLine = new(), supplyDemandZones = new()
+            , liquidityZones = new()
+            , supportResistanceZones = new(), orderBlockZones = new(), structureBreaks = new();
+
         private readonly List<Candle> candles;
         private readonly FormsPlot formsPlot;
-        private readonly List<SwingPoint> swings;
-        private Crosshair _crosshair;      
+        private string timeframe;
+        private Crosshair _crosshair;
+        private SmcAnalyzer smcAnalyzer;
+        private SmcAnalysisResult smcAnalysisResult;
         public ScottPlotDrawer(List<Candle> candles
             , FormsPlot formsPlot
-            , List<SwingPoint> swings
+            , string timeframe
             )
         {
             this.candles = candles;
             this.formsPlot = formsPlot;
-            this.swings = swings;
+            this.timeframe = timeframe;
+
+            smcAnalyzer = new SmcAnalyzer();
+            smcAnalysisResult = smcAnalyzer.Analyze(
+                candles,
+                range: candles.Count,
+                swingLength: 7,
+                sourceTimeFrame: timeframe
+            );
         }
         public void DrawCandles()
         {
@@ -51,10 +67,15 @@ namespace Trading
                 .Where(x => x.i % 10 == 0)
                 .Select(x => x.Time.ToString("MM-dd HH:mm"))
                 .ToArray();
-            ReMapSwingIndexesToChartCandles();
-            DrawSwingPoints();
-            DrawSwingZigZagLine();
 
+            ReMapSwingIndexesToChartCandles();
+            // DrawSwingPoints();
+            //DrawSwingZigZagLine();
+            // DrawTrendLines();
+            //DrawStructureBreaks();
+            //DrawSupportResistanceZones();
+            //DrawSupplyDemandZones();
+            //DrawLiquidityZones();
 
             formsPlot.Plot.XTicks(positions, labels);
             formsPlot.Plot.AxisAuto();
@@ -63,7 +84,8 @@ namespace Trading
         }
         private void DrawSwingZigZagLine()
         {
-            var orderedSwings = swings
+            zigZagLine.Clear();
+            var orderedSwings = smcAnalysisResult.Swings
                 .OrderBy(x => x.Index)
                 .ToList();
 
@@ -86,6 +108,7 @@ namespace Trading
                 markerSize: 6);
 
             line.Label = "Swing Structure";
+            zigZagLine.Add(line);
         }
 
 
@@ -112,11 +135,12 @@ namespace Trading
 
         private void DrawSwingPoints()
         {
+            swingMarkers.Clear();
             // keep track of previous same-type swing
             SwingPoint? previousHigh = null;
             SwingPoint? previousLow = null;
 
-            foreach (var swing in swings.OrderBy(x => x.Index))
+            foreach (var swing in smcAnalysisResult.Swings.OrderBy(x => x.Index))
             {
                 double x = swing.Index;
                 double y = (double)swing.Level;
@@ -164,14 +188,15 @@ namespace Trading
                     "LL" => Color.Red,
                     _ => Color.Blue
                 };
+                swingMarkers.Add(marker);
             }
         }
 
         private void ReMapSwingIndexesToChartCandles()
         {
-            for (int i = 0; i < swings.Count; i++)
+            for (int i = 0; i < smcAnalysisResult.Swings.Count; i++)
             {
-                var swing = swings[i];
+                var swing = smcAnalysisResult.Swings[i];
 
                 int chartIndex = candles.FindIndex(c => c.Time == swing.Time);
 
@@ -182,7 +207,7 @@ namespace Trading
 
         private void DrawTrendLines()
         {
-            var lows = swings
+            var lows = smcAnalysisResult.Swings
                 .Where(x => x.Type == SwingType.Low)
                 .TakeLast(2)
                 .ToList();
@@ -196,7 +221,7 @@ namespace Trading
                     y2: (double)lows[1].Level);
             }
 
-            var highs = swings
+            var highs = smcAnalysisResult.Swings
                 .Where(x => x.Type == SwingType.High)
                 .TakeLast(2)
                 .ToList();
@@ -262,6 +287,479 @@ namespace Trading
             formsPlot.Render();
         }
 
-    }
+        private void DrawStructureBreaks()
+        {
+            structureBreaks.Clear();
+            foreach (var sb in smcAnalysisResult.StructureBreaks)
+            {
+                if (sb.BrokenIndex <= 0)
+                    continue;
 
+                double x1 = sb.Index;
+                double x2 = sb.BrokenIndex;
+                double y = (double)sb.Level;
+
+                var color = sb.Direction == Direction.Bullish
+                    ? Color.Green
+                    : Color.Red;
+
+                string label = sb.IsChoch ? "CHoCH" : "BOS";
+
+                // horizontal level line
+                var line = formsPlot.Plot.AddLine(
+                    x1: x1,
+                    y1: y,
+                    x2: x2,
+                    y2: y,
+                    color: color,
+                    lineWidth: 2);
+                structureBreaks.Add(line);
+
+                line.LineStyle = LineStyle.Dash;
+
+                // vertical line at broken candle
+                var vline = formsPlot.Plot.AddVerticalLine(
+                    x: x2,
+                    color: color,
+                    width: 1);
+
+                vline.LineStyle = LineStyle.Dot;
+                structureBreaks.Add(vline);
+                // marker at break point
+                var marker = formsPlot.Plot.AddMarker(
+                    x2,
+                    y,
+                    sb.Direction == Direction.Bullish
+                        ? MarkerShape.filledCircle
+                        : MarkerShape.openCircle,
+                    size: 8,
+                    color: color);
+                structureBreaks.Add(marker);
+
+                // text label
+                var text = formsPlot.Plot.AddText(
+                    label,
+                    (x1 + x2) / 2,
+                    y);
+
+                text.Color = color;
+                text.FontSize = 12;
+                text.Alignment = Alignment.LowerCenter;
+                structureBreaks.Add(text);
+            }
+        }
+
+        private void DrawSupportResistanceZones()
+        {
+            supportResistanceZones.Clear();
+            if (candles == null || candles.Count == 0)
+                return;
+
+            double x1 = 0;
+            double x2 = candles.Count - 1;
+
+            foreach (var zone in smcAnalysisResult.SupportResistanceZones)
+            {
+                if (zone.Type != ZoneType.Support &&
+                    zone.Type != ZoneType.Resistance)
+                    continue;
+
+                double yTop = (double)zone.High;
+                double yBottom = (double)zone.Low;
+
+                var color = zone.Type == ZoneType.Support
+                    ? Color.Green
+                    : Color.Red;
+
+                var rect = formsPlot.Plot.AddRectangle(
+                    x1,
+                    x2,
+                    yBottom,
+                    yTop);
+
+                rect.BorderColor = color;
+                rect.BorderLineWidth = 1;
+                rect.Color = Color.FromArgb(35, color);
+                supportResistanceZones.Add(rect);
+
+                var text = formsPlot.Plot.AddText(
+                    zone.Type.ToString(),
+                    x2,
+                    (yTop + yBottom) / 2);
+
+                text.Color = color;
+                text.FontSize = 10;
+                text.Alignment = Alignment.MiddleRight;
+                supportResistanceZones.Add(text);
+            }
+        }
+
+        private void DrawSupplyDemandZones()
+        {
+            supplyDemandZones.Clear();
+            if (candles == null || candles.Count == 0)
+                return;
+
+            foreach (var zone in smcAnalysisResult.SupplyDemandZones)
+            {
+                if (zone.Type != ZoneType.Demand &&
+                    zone.Type != ZoneType.Supply)
+                    continue;
+
+                double x1 = zone.StartIndex > 0 ? zone.StartIndex : 0;
+                double x2 = candles.Count - 1;
+
+                double yTop = (double)zone.High;
+                double yBottom = (double)zone.Low;
+
+                var color = zone.Type == ZoneType.Demand
+                    ? Color.Green
+                    : Color.Red;
+
+                var rect = formsPlot.Plot.AddRectangle(
+                    x1,
+                    x2,
+                    yBottom,
+                    yTop);               
+
+                rect.BorderColor = color;
+                rect.BorderLineWidth = 2;
+                rect.Color = Color.FromArgb(45, color);
+                supplyDemandZones.Add(rect);
+
+                var text = formsPlot.Plot.AddText(
+                    zone.Type == ZoneType.Demand ? "Demand" : "Supply",
+                    x2,
+                    (yTop + yBottom) / 2);
+
+                text.Color = color;
+                text.FontSize = 10;
+                text.Alignment = Alignment.MiddleRight;
+                supplyDemandZones.Add(text);
+            }
+        }
+
+        private void DrawLiquidityZones()
+        {
+            if (candles == null || candles.Count == 0)
+                return;
+
+            foreach (var zone in smcAnalysisResult.LiquidityZones)
+            {
+                if (zone.Type != ZoneType.BullishLiquidity &&
+                    zone.Type != ZoneType.BearishLiquidity)
+                    continue;
+
+                double x1 = zone.StartIndex;
+                double x2 = zone.SweptIndex.HasValue && zone.SweptIndex.Value > 0
+                    ? zone.SweptIndex.Value
+                    : candles.Count - 1;
+
+                double yBottom = (double)zone.Low;
+                double yTop = (double)zone.High;
+                double yMid = (yBottom + yTop) / 2;
+
+                var color = zone.Type == ZoneType.BullishLiquidity
+                    ? Color.Red      // liquidity above swing highs
+                    : Color.Green;   // liquidity below swing lows
+
+                var rect = formsPlot.Plot.AddRectangle(
+                    x1,
+                    x2,
+                    yBottom,
+                    yTop);
+
+                rect.BorderColor = color;
+                rect.BorderLineWidth = 1;
+                rect.Color = Color.FromArgb(35, color);
+
+                var line = formsPlot.Plot.AddLine(
+                    x1: x1,
+                    y1: yMid,
+                    x2: x2,
+                    y2: yMid,
+                    color: color,
+                    lineWidth: 1);
+
+                line.LineStyle = LineStyle.Dash;
+
+                string label = zone.Type == ZoneType.BullishLiquidity
+                    ? $"Buy-side Liq ({zone.TouchCount})"
+                    : $"Sell-side Liq ({zone.TouchCount})";
+
+                var text = formsPlot.Plot.AddText(
+                    label,
+                    x2,
+                    yMid);
+
+                text.Color = color;
+                text.FontSize = 10;
+                text.Alignment = Alignment.MiddleRight;
+
+                if (zone.SweptIndex.HasValue && zone.SweptIndex.Value > 0)
+                {
+                    formsPlot.Plot.AddMarker(
+                        zone.SweptIndex.Value,
+                        yMid,
+                        MarkerShape.filledCircle,
+                        size: 7,
+                        color: color);
+
+                    var sweptText = formsPlot.Plot.AddText(
+                        "Swept",
+                        zone.SweptIndex.Value,
+                        yMid);
+
+                    sweptText.Color = color;
+                    sweptText.FontSize = 9;
+                    sweptText.Alignment = Alignment.UpperCenter;
+                }
+            }
+        }
+
+        private void DrawFvgZones()
+        {
+            if (candles == null || candles.Count == 0)
+                return;
+
+            foreach (var zone in smcAnalysisResult.FvgZones)
+            {
+                if (zone.Type != ZoneType.BullishFvg &&
+                    zone.Type != ZoneType.BearishFvg)
+                    continue;
+
+                double x1 = zone.StartIndex;
+                double x2 = zone.MitigatedIndex.HasValue && zone.MitigatedIndex.Value > 0
+                    ? zone.MitigatedIndex.Value 
+                    : candles.Count - 1;
+
+                double yBottom = (double)zone.Low;
+                double yTop = (double)zone.High;
+                double yMid = (yBottom + yTop) / 2;
+
+                var color = zone.Type == ZoneType.BullishFvg
+                    ? Color.Green
+                    : Color.Red;
+
+                var rect = formsPlot.Plot.AddRectangle(
+                    x1,
+                    x2,
+                    yBottom,
+                    yTop);
+
+                rect.BorderColor = color;
+                rect.BorderLineWidth = 1;
+                rect.Color = Color.FromArgb(35, color);
+
+                fvgZones.Add(rect);
+
+                string label = zone.Type == ZoneType.BullishFvg
+                    ? "Bullish FVG"
+                    : "Bearish FVG";
+
+                if (zone.MitigatedIndex > 0)
+                    label += " Mitigated";
+
+                var text = formsPlot.Plot.AddText(
+                    label,
+                    x2,
+                    yMid);
+
+                text.Color = color;
+                text.FontSize = 9;
+                text.Alignment = Alignment.MiddleRight;
+
+                fvgZones.Add(text);
+            }
+        }
+
+        private void DrawOrderBlockZones()
+        {
+            if (candles == null || candles.Count == 0)
+                return;
+
+            foreach (var zone in smcAnalysisResult.OrderBlocks)
+            {
+                if (zone.Type != ZoneType.BullishOrderBlock &&
+                    zone.Type != ZoneType.BearishOrderBlock)
+                    continue;
+
+                double x1 = zone.StartIndex;
+                double x2 = zone.MitigatedIndex.HasValue && zone.MitigatedIndex.Value > 0
+                    ? zone.MitigatedIndex.Value
+                    : candles.Count - 1;
+
+                double yBottom = (double)zone.Low;
+                double yTop = (double)zone.High;
+                double yMid = (yBottom + yTop) / 2;
+
+                var color = zone.Type == ZoneType.BullishOrderBlock
+                    ? Color.Green
+                    : Color.Red;
+
+                var rect = formsPlot.Plot.AddRectangle(
+                    x1,
+                    x2,
+                    yBottom,
+                    yTop);
+
+                rect.BorderColor = color;
+                rect.BorderLineWidth = 2;
+                rect.Color = Color.FromArgb(45, color);
+
+                orderBlockZones.Add(rect);
+
+                string label = zone.Type == ZoneType.BullishOrderBlock
+                    ? "Bullish OB"
+                    : "Bearish OB";
+
+                if (zone.MitigatedIndex > 0)
+                    label += " Mitigated";
+
+                var text = formsPlot.Plot.AddText(
+                    label,
+                    x2,
+                    yMid);
+
+                text.Color = color;
+                text.FontSize = 9;
+                text.Alignment = Alignment.MiddleRight;
+
+                orderBlockZones.Add(text);
+
+                var marker = formsPlot.Plot.AddMarker(
+                    x1,
+                    yMid,
+                    MarkerShape.filledSquare,
+                    size: 7,
+                    color: color);
+
+                marker.Text = "OB";
+
+                orderBlockZones.Add(marker);
+            }
+        }
+
+        public void AddSwings()
+        {
+            DrawSwingPoints();
+            formsPlot.Render();
+        }
+        public void RemoveSwings()
+        {
+            foreach (var marker in swingMarkers)
+            {
+                formsPlot.Plot.Remove(marker);
+            }
+
+            swingMarkers.Clear();
+
+            formsPlot.Render();
+        }
+
+        public void AddZigZagLine()
+        {
+            DrawSwingZigZagLine();
+            formsPlot.Render();
+        }
+        public void RemoveZigZagLine()
+        {
+            foreach (var marker in zigZagLine)
+            {
+                formsPlot.Plot.Remove(marker);
+            }
+            zigZagLine.Clear();
+            formsPlot.Render();
+        }
+
+        public void AddSDZones()
+        {
+            DrawSupplyDemandZones();
+            formsPlot.Render();
+        }
+        public void RemoveSDZones()
+        {
+            foreach (var zone in supplyDemandZones)
+            {
+                formsPlot.Plot.Remove(zone);
+            }
+            supplyDemandZones.Clear();
+            formsPlot.Render();
+        }
+
+        public void AddSRZones()
+        {
+            DrawSupportResistanceZones();
+            formsPlot.Render();
+        }
+        public void RemoveSRZones()
+        {
+            foreach(var zone in supportResistanceZones)
+            {
+                formsPlot.Plot.Remove(zone);
+            }
+            supportResistanceZones.Clear();
+            formsPlot.Render();
+        }
+
+        public void AddFvgZones()
+        {
+            DrawFvgZones();
+            formsPlot.Render();
+        }
+        public void RemoveFvgZones()
+        {
+            foreach (var zone in fvgZones)
+            {
+                formsPlot.Plot.Remove(zone);
+            }
+            fvgZones.Clear();
+            formsPlot.Render();
+        }
+
+        public void AddOrderBlockZones()
+        {
+            DrawOrderBlockZones();
+            formsPlot.Render();
+        }
+        public void RemoveOrderBlockZones()
+        {
+            foreach (var zone in orderBlockZones)
+            {
+                formsPlot.Plot.Remove(zone);
+            }
+            orderBlockZones.Clear();
+            formsPlot.Render();
+        }
+
+        public void AddLiquidityZones()
+        {
+            DrawLiquidityZones();
+            formsPlot.Render();
+        }
+        public void RemoveLiquidityZones()
+        {
+            foreach (var zone in liquidityZones)
+            {
+                formsPlot.Plot.Remove(zone);
+            }
+            liquidityZones.Clear();
+            formsPlot.Render();
+        }
+
+        public void AddStructureBreaks()
+        {
+            DrawStructureBreaks();
+            formsPlot.Render();
+        }
+        public void RemoveStructureBreaks()
+        {
+            foreach (var sb in structureBreaks)
+            {
+                formsPlot.Plot.Remove(sb);
+            }
+            structureBreaks.Clear();
+            formsPlot.Render();
+        }
+    }
 }

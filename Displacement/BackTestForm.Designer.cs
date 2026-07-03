@@ -27,6 +27,15 @@ namespace Displacement
             lblTrendResult = new Label();
             spChart = new ScottPlot.FormsPlot();
             checkCrosshair = new CheckBox();
+            cboTimeframe = new ComboBox();
+            checkSRZones = new CheckBox();
+            checkSDZones = new CheckBox();
+            checkSwings = new CheckBox();
+            checkStructureBreaks = new CheckBox();
+            checkLiquidityZones = new CheckBox();
+            checkFvgZones = new CheckBox();
+            checkOrderBlocks = new CheckBox();
+            checkZigZagLine = new CheckBox();
             SuspendLayout();
             // 
             // btnRun
@@ -127,7 +136,7 @@ namespace Displacement
             // checkCrosshair
             // 
             checkCrosshair.AutoSize = true;
-            checkCrosshair.Location = new Point(1304, 115);
+            checkCrosshair.Location = new Point(1313, 65);
             checkCrosshair.Name = "checkCrosshair";
             checkCrosshair.Size = new Size(75, 19);
             checkCrosshair.TabIndex = 11;
@@ -135,9 +144,117 @@ namespace Displacement
             checkCrosshair.UseVisualStyleBackColor = true;
             checkCrosshair.CheckedChanged += checkCrosshair_CheckedChanged;
             // 
+            // cboTimeframe
+            // 
+            cboTimeframe.FormattingEnabled = true;
+            cboTimeframe.Items.AddRange(new object[] { "5min", "15min", "1hour", "4hour" });
+            cboTimeframe.Location = new Point(414, 66);
+            cboTimeframe.Name = "cboTimeframe";
+            cboTimeframe.Size = new Size(121, 23);
+            cboTimeframe.TabIndex = 12;
+            cboTimeframe.SelectedIndexChanged += cboTimeframe_SelectedIndexChanged;
+            // 
+            // checkSRZones
+            // 
+            checkSRZones.AutoSize = true;
+            checkSRZones.Location = new Point(1313, 38);
+            checkSRZones.Name = "checkSRZones";
+            checkSRZones.Size = new Size(74, 19);
+            checkSRZones.TabIndex = 13;
+            checkSRZones.Text = "SR Zones";
+            checkSRZones.TextAlign = ContentAlignment.MiddleCenter;
+            checkSRZones.UseVisualStyleBackColor = true;
+            checkSRZones.CheckedChanged += checkSRZones_CheckedChanged;
+            // 
+            // checkSDZones
+            // 
+            checkSDZones.AutoSize = true;
+            checkSDZones.Location = new Point(1214, 38);
+            checkSDZones.Name = "checkSDZones";
+            checkSDZones.Size = new Size(75, 19);
+            checkSDZones.TabIndex = 14;
+            checkSDZones.Text = "SD Zones";
+            checkSDZones.UseVisualStyleBackColor = true;
+            checkSDZones.CheckedChanged += checkSDZones_CheckedChanged;
+            // 
+            // checkSwings
+            // 
+            checkSwings.AutoSize = true;
+            checkSwings.Location = new Point(1128, 38);
+            checkSwings.Name = "checkSwings";
+            checkSwings.Size = new Size(63, 19);
+            checkSwings.TabIndex = 15;
+            checkSwings.Text = "Swings";
+            checkSwings.UseVisualStyleBackColor = true;
+            checkSwings.CheckedChanged += checkSwings_CheckedChanged;
+            // 
+            // checkStructureBreaks
+            // 
+            checkStructureBreaks.AutoSize = true;
+            checkStructureBreaks.Location = new Point(1242, 90);
+            checkStructureBreaks.Name = "checkStructureBreaks";
+            checkStructureBreaks.Size = new Size(111, 19);
+            checkStructureBreaks.TabIndex = 16;
+            checkStructureBreaks.Text = "Structure Breaks";
+            checkStructureBreaks.UseVisualStyleBackColor = true;
+            checkStructureBreaks.CheckedChanged += checkStructureBreaks_CheckedChanged;
+            // 
+            // checkLiquidityZones
+            // 
+            checkLiquidityZones.AutoSize = true;
+            checkLiquidityZones.Location = new Point(1129, 90);
+            checkLiquidityZones.Name = "checkLiquidityZones";
+            checkLiquidityZones.Size = new Size(107, 19);
+            checkLiquidityZones.TabIndex = 17;
+            checkLiquidityZones.Text = "Liquidity Zones";
+            checkLiquidityZones.UseVisualStyleBackColor = true;
+            checkLiquidityZones.CheckedChanged += checkLiquidityZones_CheckedChanged;
+            // 
+            // checkFvgZones
+            // 
+            checkFvgZones.AutoSize = true;
+            checkFvgZones.Location = new Point(1128, 63);
+            checkFvgZones.Name = "checkFvgZones";
+            checkFvgZones.Size = new Size(80, 19);
+            checkFvgZones.TabIndex = 18;
+            checkFvgZones.Text = "Fvg Zones";
+            checkFvgZones.UseVisualStyleBackColor = true;
+            checkFvgZones.CheckedChanged += checkFvgZones_CheckedChanged;
+            // 
+            // checkOrderBlocks
+            // 
+            checkOrderBlocks.AutoSize = true;
+            checkOrderBlocks.Location = new Point(1214, 65);
+            checkOrderBlocks.Name = "checkOrderBlocks";
+            checkOrderBlocks.Size = new Size(93, 19);
+            checkOrderBlocks.TabIndex = 19;
+            checkOrderBlocks.Text = "Order Blocks";
+            checkOrderBlocks.UseVisualStyleBackColor = true;
+            checkOrderBlocks.CheckedChanged += checkOrderBlocks_CheckedChanged;
+            // 
+            // checkZigZagLine
+            // 
+            checkZigZagLine.AutoSize = true;
+            checkZigZagLine.Location = new Point(1128, 14);
+            checkZigZagLine.Name = "checkZigZagLine";
+            checkZigZagLine.Size = new Size(88, 19);
+            checkZigZagLine.TabIndex = 20;
+            checkZigZagLine.Text = "ZigZag Line";
+            checkZigZagLine.UseVisualStyleBackColor = true;
+            checkZigZagLine.CheckedChanged += checkZigZagLine_CheckedChanged;
+            // 
             // BackTestForm
             // 
             ClientSize = new Size(1436, 803);
+            Controls.Add(checkZigZagLine);
+            Controls.Add(checkOrderBlocks);
+            Controls.Add(checkFvgZones);
+            Controls.Add(checkLiquidityZones);
+            Controls.Add(checkStructureBreaks);
+            Controls.Add(checkSwings);
+            Controls.Add(checkSDZones);
+            Controls.Add(checkSRZones);
+            Controls.Add(cboTimeframe);
             Controls.Add(checkCrosshair);
             Controls.Add(spChart);
             Controls.Add(lblTrendResult);
@@ -169,5 +286,14 @@ namespace Displacement
         private Label lblTrendResult;
         private ScottPlot.FormsPlot spChart;
         private CheckBox checkCrosshair;
+        private ComboBox cboTimeframe;
+        private CheckBox checkSRZones;
+        private CheckBox checkSDZones;
+        private CheckBox checkSwings;
+        private CheckBox checkStructureBreaks;
+        private CheckBox checkLiquidityZones;
+        private CheckBox checkFvgZones;
+        private CheckBox checkOrderBlocks;
+        private CheckBox checkZigZagLine;
     }
 }
