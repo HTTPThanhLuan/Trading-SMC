@@ -89,12 +89,62 @@ namespace Trading
         }
 
 
+        //private void DrawSwingPoints()
+        //{
+        //    foreach (var swing in swings)
+        //    {
+        //        double x = swing.Index;
+        //        double y = (double)swing.Level;
+
+        //        var marker = formsPlot.Plot.AddMarker(
+        //            x,
+        //            y,
+        //            swing.Type == SwingType.High
+        //                ? MarkerShape.filledTriangleDown
+        //                : MarkerShape.filledTriangleUp,
+        //            size: 10);
+
+        //        marker.Text = swing.Type == SwingType.High
+        //            ? "Swing High"
+        //            : "Swing Low";
+        //    }
+        //}
+
         private void DrawSwingPoints()
         {
-            foreach (var swing in swings)
+            // keep track of previous same-type swing
+            SwingPoint? previousHigh = null;
+            SwingPoint? previousLow = null;
+
+            foreach (var swing in swings.OrderBy(x => x.Index))
             {
                 double x = swing.Index;
                 double y = (double)swing.Level;
+
+                string label = "";
+
+                if (swing.Type == SwingType.High)
+                {
+                    if (previousHigh == null)
+                        label = "H";   // first high
+                    else
+                        label = swing.Level > previousHigh.Level
+                            ? "HH"
+                            : "LH";
+
+                    previousHigh = swing;
+                }
+                else
+                {
+                    if (previousLow == null)
+                        label = "L";   // first low
+                    else
+                        label = swing.Level > previousLow.Level
+                            ? "HL"
+                            : "LL";
+
+                    previousLow = swing;
+                }
 
                 var marker = formsPlot.Plot.AddMarker(
                     x,
@@ -104,9 +154,16 @@ namespace Trading
                         : MarkerShape.filledTriangleUp,
                     size: 10);
 
-                marker.Text = swing.Type == SwingType.High
-                    ? "Swing High"
-                    : "Swing Low";
+                marker.Text = label;
+
+                marker.Color = label switch
+                {
+                    "HH" => Color.Green,
+                    "HL" => Color.LightGreen,
+                    "LH" => Color.Orange,
+                    "LL" => Color.Red,
+                    _ => Color.Blue
+                };
             }
         }
 
