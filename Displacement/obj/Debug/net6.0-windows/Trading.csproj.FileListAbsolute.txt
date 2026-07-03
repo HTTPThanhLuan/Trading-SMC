@@ -1,9 +1,0 @@
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.csproj.AssemblyReference.cache
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Displacement.BackTestForm.resources
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Displacement.Main.resources
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.ZoneResultForm.resources
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.csproj.GenerateResource.cache
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.AssemblyInfoInputs.cache
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.AssemblyInfo.cs
-C:\Users\Thanh\source\repos\Displacement\Displacement\obj\Debug\net6.0-windows\Trading.csproj.CoreCompileInputs.cache

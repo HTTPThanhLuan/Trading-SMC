@@ -3,5 +3,4 @@
   <Project Path="Smc/Smc.csproj" Id="8f9f1862-5fcc-4df8-9cd0-3a01040a21b0" />
   <Project Path="TestProject/TestProject.csproj" Id="4f7150b4-f530-4412-ace2-554a3613d772" />
   <Project Path="TradingUI/TradingUI.csproj" Id="be5a5686-2f1e-4b80-8921-16a9bf7f3477" />
-  <Project Path="WindowsFormsApp1/WindowsFormsApp1.csproj" Id="4e3ef083-f50b-4e5c-ae4c-d187fd2cea3d" />
 </Solution>
