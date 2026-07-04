@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -98,6 +99,197 @@ public sealed class SmcAnalyzer
 
         return raw.OrderBy(x => x.Index).ToList();
     }
+
+   
+
+    public static List<SwingPoint> DetectStructureSwings(List<Candle> candles)
+    {
+        var swings = new List<SwingPoint>();
+
+        if (candles == null || candles.Count < 3)
+            return swings;
+
+        int direction = 0; // 1 = up move, -1 = down move
+
+        int extremeIndex = 0;
+        decimal extremeHigh = candles[0].High;
+        decimal extremeLow = candles[0].Low;
+
+        decimal breakLevel = 0;
+
+        for (int i = 1; i < candles.Count; i++)
+        {
+            var c = candles[i];
+
+            if (direction == 0)
+            {
+                if (c.High > extremeHigh)
+                {
+                    direction = 1;
+                    extremeHigh = c.High;
+                    extremeIndex = i;
+                    breakLevel = candles[i - 1].Low;
+                }
+                else if (c.Low < extremeLow)
+                {
+                    direction = -1;
+                    extremeLow = c.Low;
+                    extremeIndex = i;
+                    breakLevel = candles[i - 1].High;
+                }
+
+                continue;
+            }
+
+            if (direction == 1)
+            {
+                if (c.High > extremeHigh)
+                {
+                    extremeHigh = c.High;
+                    extremeIndex = i;
+                    breakLevel = candles[i - 1].Low;
+                    continue;
+                }
+
+                if (c.Close < breakLevel)
+                {
+                    swings.Add(new SwingPoint
+                    {
+                        Index = extremeIndex,
+                        Time = candles[extremeIndex].Time,
+                        Type = SwingType.High,
+                        Level = extremeHigh
+                    });
+
+                    direction = -1;
+                    extremeLow = c.Low;
+                    extremeIndex = i;
+                    breakLevel = candles[i - 1].High;
+                }
+            }
+            else if (direction == -1)
+            {
+                if (c.Low < extremeLow)
+                {
+                    extremeLow = c.Low;
+                    extremeIndex = i;
+                    breakLevel = candles[i - 1].High;
+                    continue;
+                }
+
+                if (c.Close > breakLevel)
+                {
+                    swings.Add(new SwingPoint
+                    {
+                        Index = extremeIndex,
+                        Time = candles[extremeIndex].Time,
+                        Type = SwingType.Low,
+                        Level = extremeLow
+                    });
+
+                    direction = 1;
+                    extremeHigh = c.High;
+                    extremeIndex = i;
+                    breakLevel = candles[i - 1].Low;
+                }
+            }
+        }
+
+        return swings;
+    }
+
+
+
+    public static List<SwingPoint> DetectSwingsRollingWindow(
+    List<Candle> candles,
+    int sideLength = 5)
+    {
+        var swings = new List<SwingPoint>();
+
+        if (candles == null || candles.Count < sideLength * 2 + 1)
+            return swings;
+
+        int n = candles.Count;
+
+        for (int i = sideLength; i < n - sideLength; i++)
+        {
+            decimal maxHigh = decimal.MinValue;
+            decimal minLow = decimal.MaxValue;
+
+            for (int j = i - sideLength; j <= i + sideLength; j++)
+            {
+                if (candles[j].High > maxHigh)
+                    maxHigh = candles[j].High;
+
+                if (candles[j].Low < minLow)
+                    minLow = candles[j].Low;
+            }
+
+            if (candles[i].High == maxHigh)
+            {
+                swings.Add(new SwingPoint
+                {
+                    Index = i,
+                    Time = candles[i].Time,
+                    Type = SwingType.High,
+                    Level = candles[i].High
+                });
+            }
+            else if (candles[i].Low == minLow)
+            {
+                swings.Add(new SwingPoint
+                {
+                    Index = i,
+                    Time = candles[i].Time,
+                    Type = SwingType.Low,
+                    Level = candles[i].Low
+                });
+            }
+        }
+
+        return CleanConsecutiveSwings(swings);
+    }
+
+    private static List<SwingPoint> CleanConsecutiveSwings(List<SwingPoint> swings)
+    {
+        if (swings == null || swings.Count < 2)
+            return swings ?? new List<SwingPoint>();
+
+        var result = new List<SwingPoint>();
+
+        foreach (var swing in swings.OrderBy(x => x.Index))
+        {
+            if (result.Count == 0)
+            {
+                result.Add(swing);
+                continue;
+            }
+
+            var last = result[^1];
+
+            if (last.Type != swing.Type)
+            {
+                result.Add(swing);
+                continue;
+            }
+
+            if (swing.Type == SwingType.High)
+            {
+                if (swing.Level > last.Level)
+                    result[^1] = swing;
+            }
+            else
+            {
+                if (swing.Level < last.Level)
+                    result[^1] = swing;
+            }
+        }
+
+        return result;
+    }
+
+
+
 
     public static TrendType DetectTrend(List<SwingPoint> swings)
     {
