@@ -21,6 +21,7 @@ namespace Displacement
             , isOrderBlocksEnabled = false
             , isdtStartOnFocus = false
             , isdtEndOnFocus = false;
+        private int swingLength = 5;
 
         private readonly FmpService _fmp = new("bNwpAsAvIjEKxid7uc5F78XBPmUuW8l2");
         public BackTestForm()
@@ -39,6 +40,7 @@ namespace Displacement
             cboTimeframe.Text = "4hour";
             lblTrendResult.Text = string.Empty;
             lblCandleInfo.Text = string.Empty;
+            numSwingLength.Value = 5;
 
 
         }
@@ -72,7 +74,9 @@ namespace Displacement
         {
             BindSelectedCriteriaToVariables();
             await fetchDataMarket();
-            scottPlotDrawer = new ScottPlotDrawer(candles, spChart, timeframe, onMoveOnChart, onDoubleClickOnCandle);
+            candles = candles.Where(candle => candle.Time >= dateStart && candle.Time <= dateEnd).ToList();
+
+            scottPlotDrawer = new ScottPlotDrawer(candles, spChart, timeframe, onMoveOnChart, onDoubleClickOnCandle, swingLength);
             scottPlotDrawer.DrawCandles();
 
             lblTrendResult.Text = $"{scottPlotDrawer.GetTrend()}";
@@ -103,12 +107,7 @@ namespace Displacement
             }
         }
 
-        private void cboView_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            var zoneResult = new ZoneResultForm();
-            zoneResult.Text = $"{cboView.SelectedItem.ToString()} - {txtTicker.Text}";
-            zoneResult.Show();
-        }
+      
 
         private void BindSelectedCriteriaToVariables()
         {
@@ -116,6 +115,7 @@ namespace Displacement
             dateStart = dtStart.Value;
             dateEnd = dtEnd.Value;
             timeframe = cboTimeframe.SelectedItem.ToString();
+            swingLength = (int)numSwingLength.Value;
         }
 
         private async Task fetchDataMarket()

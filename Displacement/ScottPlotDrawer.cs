@@ -32,6 +32,7 @@ namespace Trading
             , string timeframe
             , Action<Candle> onMoveOnCandleCallBack
             , Action<Candle> onDoubleClickOnCandleCallBack
+            , int swingLength
             )
         {
             this.candles = candles;
@@ -44,7 +45,7 @@ namespace Trading
             smcAnalysisResult = smcAnalyzer.Analyze(
                 candles,
                 range: candles.Count,
-                swingLength: 7,
+                swingLength: swingLength,
                 sourceTimeFrame: timeframe
             );
 

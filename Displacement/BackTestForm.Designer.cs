@@ -22,7 +22,6 @@ namespace Displacement
             dtEnd = new DateTimePicker();
             lblTicker = new Label();
             txtTicker = new TextBox();
-            cboView = new ComboBox();
             lblView = new Label();
             lblTrendResult = new Label();
             spChart = new ScottPlot.FormsPlot();
@@ -37,6 +36,8 @@ namespace Displacement
             checkOrderBlocks = new CheckBox();
             checkZigZagLine = new CheckBox();
             lblCandleInfo = new Label();
+            numSwingLength = new NumericUpDown();
+            ((System.ComponentModel.ISupportInitialize)numSwingLength).BeginInit();
             SuspendLayout();
             // 
             // btnRun
@@ -103,24 +104,14 @@ namespace Displacement
             txtTicker.Size = new Size(100, 23);
             txtTicker.TabIndex = 6;
             // 
-            // cboView
-            // 
-            cboView.FormattingEnabled = true;
-            cboView.Items.AddRange(new object[] { "Swings", "StructureBreaks", "LatestDisplacement", "--------------------", "SupportResistanceZones", "FvgZones", "OrderBlocks", "SupplyDemandZones", "LiquidityZones", "AllZones" });
-            cboView.Location = new Point(204, 66);
-            cboView.Name = "cboView";
-            cboView.Size = new Size(165, 23);
-            cboView.TabIndex = 7;
-            cboView.SelectedIndexChanged += cboView_SelectedIndexChanged;
-            // 
             // lblView
             // 
             lblView.AutoSize = true;
-            lblView.Location = new Point(154, 71);
+            lblView.Location = new Point(12, 74);
             lblView.Name = "lblView";
-            lblView.Size = new Size(35, 15);
+            lblView.Size = new Size(82, 15);
             lblView.TabIndex = 8;
-            lblView.Text = "View:";
+            lblView.Text = "Swing Length:";
             // 
             // lblTrendResult
             // 
@@ -260,9 +251,17 @@ namespace Displacement
             lblCandleInfo.TabIndex = 21;
             lblCandleInfo.Text = "CandleInfo:";
             // 
+            // numSwingLength
+            // 
+            numSwingLength.Location = new Point(141, 72);
+            numSwingLength.Name = "numSwingLength";
+            numSwingLength.Size = new Size(66, 23);
+            numSwingLength.TabIndex = 22;
+            // 
             // BackTestForm
             // 
             ClientSize = new Size(1436, 803);
+            Controls.Add(numSwingLength);
             Controls.Add(lblCandleInfo);
             Controls.Add(checkZigZagLine);
             Controls.Add(checkOrderBlocks);
@@ -277,7 +276,6 @@ namespace Displacement
             Controls.Add(spChart);
             Controls.Add(lblTrendResult);
             Controls.Add(lblView);
-            Controls.Add(cboView);
             Controls.Add(txtTicker);
             Controls.Add(lblTicker);
             Controls.Add(dtEnd);
@@ -288,6 +286,7 @@ namespace Displacement
             Name = "BackTestForm";
             Text = "Backtesting";
             Load += BackTestForm_Load;
+            ((System.ComponentModel.ISupportInitialize)numSwingLength).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -299,7 +298,6 @@ namespace Displacement
         private DateTimePicker dtEnd;
         private Label lblTicker;
         private TextBox txtTicker;
-        private ComboBox cboView;
         private Label lblView;
         private Label lblTrendResult;
         private ScottPlot.FormsPlot spChart;
@@ -314,5 +312,6 @@ namespace Displacement
         private CheckBox checkOrderBlocks;
         private CheckBox checkZigZagLine;
         private Label lblCandleInfo;
+        private NumericUpDown numSwingLength;
     }
 }
